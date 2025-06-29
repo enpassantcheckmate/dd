@@ -35,7 +35,7 @@
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-     async function getIP() {
+  async function getIP() {
     try {
       const res = await fetch("https://api64.ipify.org?format=json");
       if (!res.ok) throw new Error("Fetch failed");
@@ -52,13 +52,10 @@
 
   async function getLocationFromIP(ip) {
     try {
-      console.log("Getting location for IP:", ip);
-      if (!ip) throw new Error("Invalid IP passed to location function.");
-      const res = await fetch(`https://ipapi.co/${ip}/json/`);
+      const res = await fetch(`https://ipwho.is/${ip}`);
       if (!res.ok) throw new Error("Location fetch failed");
       const data = await res.json();
-      console.log("Location data:", data);
-      if (!data.latitude || !data.longitude) throw new Error("Latitude/longitude missing");
+      if (!data.success || !data.latitude || !data.longitude) throw new Error("Invalid location data");
       return data;
     } catch (err) {
       console.error("❌ Location fetch error:", err);
