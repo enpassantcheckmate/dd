@@ -30,55 +30,54 @@
 <body>
   <h1>🌐 What's My IP on a Map</h1>
   <p id="ip">Fetching IP...</p>
-  <p id="loc-status">Fetching location from IP...</p>
+  <p id="loc-status">Fetching location...</p>
   <div id="map">Loading map...</div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-  async function getIP() {
-    try {
-      const res = await fetch("https://api64.ipify.org?format=json");
-      if (!res.ok) throw new Error("Fetch failed");
-      const data = await res.json();
-      console.log("IP retrieved:", data.ip);
-      if (!data.ip) throw new Error("IP field missing");
-      return data.ip;
-    } catch (err) {
-      console.error("❌ IP fetch error:", err);
-      document.getElementById("ip").textContent = "❌ Failed to retrieve IP address.";
-      throw err;
-    }
-  }
+    async function getLocationData() {
+      try {
+        const res = await fetch("http://ip-api.com/json/?fields=status,message,query,country,city,lat,lon");
+        if (!res.ok) throw new Error("Location API fetch failed");
+        const data = await res.json();
 
-  async function getLocationFromIP(ip) {
-    try {
-      const res = await fetch(`https://ipwho.is/${ip}`);
-      if (!res.ok) throw new Error("Location fetch failed");
-      const data = await res.json();
-      if (!data.success || !data.latitude || !data.longitude) throw new Error("Invalid location data");
-      return data;
-    } catch (err) {
-      console.error("❌ Location fetch error:", err);
-      document.getElementById("loc-status").textContent = "❌ Failed to retrieve location from IP.";
-      throw err;
+        if (data.status !== "success") {
+          throw new Error(data.message || "Location lookup failed");
+        }
+
+        return data;
+      } catch (err) {
+        document.getElementById("loc-status").textContent = "❌ Failed to retrieve location.";
+        console.error("Location fetch error:", err);
+        throw err;
+      }
     }
-  }
+
+    function showMap(lat, lon, city, country) {
+      try {
+        const map = L.map("map").setView([lat, lon], 12);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors"
+        }).addTo(map);
+        L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup(`📍 ${city}, ${country}`)
+          .openPopup();
+      } catch (err) {
+        document.getElementById("map").textContent = "❌ Failed to load map.";
+        console.error("Map rendering error:", err);
+      }
+    }
 
     async function startApp() {
       try {
-        const ip = await getIP();
-        document.getElementById("ip").textContent = `Your IP: ${ip}`;
-
-        const location = await getLocationFromIP(ip);
-        const { latitude, longitude, city, country_name } = location;
-
+        const loc = await getLocationData();
+        document.getElementById("ip").textContent = `Your IP: ${loc.query}`;
         document.getElementById("loc-status").textContent =
-          `Estimated Location: ${city}, ${country_name} (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`;
-
-        showMap(latitude, longitude, city, country_name);
+          `Location: ${loc.city}, ${loc.country} (${loc.lat.toFixed(2)}, ${loc.lon.toFixed(2)})`;
+        showMap(loc.lat, loc.lon, loc.city, loc.country);
       } catch (e) {
-        console.error("App error:", e);
-        // If any error was thrown, map may already have fallback messages set
+        console.error("Startup error:", e);
       }
     }
 
