@@ -31,45 +31,61 @@
   <h1>🌐 What's My IP on a Map</h1>
   <p id="ip">Fetching IP...</p>
   <p id="loc-status">Fetching location...</p>
-  <div id="map"></div>
+  <div id="map">Loading map...</div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    async function showIPAndLocation() {
+    async function fetchIP() {
       try {
         const ipRes = await fetch("https://api64.ipify.org?format=json");
         const ipData = await ipRes.json();
-        const ip = ipData.ip;
-        document.getElementById("ip").textContent = `Your IP: ${ip}`;
+        return ipData.ip;
+      } catch {
+        document.getElementById("ip").textContent = "❌ Failed to fetch IP.";
+        throw new Error("IP fetch failed");
+      }
+    }
 
-        const locRes = await fetch(`https://ipapi.co/${ip}/json/`);
-        const locData = await locRes.json();
-        const lat = locData.latitude;
-        const lon = locData.longitude;
-        const city = locData.city;
-        const country = locData.country_name;
+    async function fetchLocation(ip) {
+      try {
+        const res = await fetch(`https://ipapi.co/${ip}/json/`);
+        const data = await res.json();
+        if (!data.latitude || !data.longitude) throw new Error("No location data");
+        return data;
+      } catch {
+        document.getElementById("loc-status").textContent = "❌ Failed to fetch location.";
+        throw new Error("Location fetch failed");
+      }
+    }
 
-        document.getElementById("loc-status").textContent =
-          `Location: ${city}, ${country} (${lat.toFixed(2)}, ${lon.toFixed(2)})`;
-
+    function renderMap(lat, lon, city, country) {
+      try {
         const map = L.map("map").setView([lat, lon], 12);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution: "&copy; OpenStreetMap contributors"
         }).addTo(map);
-
-        L.marker([lat, lon])
-          .addTo(map)
+        L.marker([lat, lon]).addTo(map)
           .bindPopup(`You're here: ${city}, ${country}`)
           .openPopup();
-      } catch (err) {
-        document.getElementById("ip").textContent = "❌ Failed to fetch IP.";
-        document.getElementById("loc-status").textContent = "❌ Failed to fetch location.";
-        document.getElementById("map").textContent = "Map could not load.";
-        console.error(err);
+      } catch {
+        document.getElementById("map").textContent = "❌ Failed to load map.";
       }
     }
 
-    showIPAndLocation();
+    async function start() {
+      try {
+        const ip = await fetchIP();
+        document.getElementById("ip").textContent = `Your IP: ${ip}`;
+        const location = await fetchLocation(ip);
+        document.getElementById("loc-status").textContent =
+          `Location: ${location.city}, ${location.country_name} (${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)})`;
+        renderMap(location.latitude, location.longitude, location.city, location.country_name);
+      } catch (e) {
+        console.error(e.message);
+      }
+    }
+
+    start();
   </script>
 </body>
 </html>
