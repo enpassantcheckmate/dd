@@ -25,13 +25,14 @@
 <body>
   <h1>🌐 What's My IP?</h1>
   <p id="ip">Detecting IP...</p>
-  <div id="map"></div>
+  <div id="map">Loading map...</div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     async function showIPInfo() {
       try {
         const res = await fetch("https://ipapi.co/json/");
+        if (!res.ok) throw new Error("Failed to fetch IP info");
         const data = await res.json();
 
         document.getElementById("ip").textContent = `Your IP: ${data.ip}`;
@@ -49,8 +50,9 @@
           .bindPopup(`You are here!<br>${data.city}, ${data.country_name}`)
           .openPopup();
       } catch (err) {
-        document.getElementById("ip").textContent =
-          "Could not fetch IP info.";
+        document.getElementById("ip").textContent = "Could not fetch IP info.";
+        document.getElementById("map").textContent = "Map failed to load.";
+        console.error(err);
       }
     }
 
