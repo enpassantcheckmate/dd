@@ -10,7 +10,7 @@
   />
   <style>
     body {
-      font-family: -apple-system, sf pro, dm sans, inter, aptos, sans-serif;
+      font-family: sans-serif;
       text-align: center;
       margin: 0;
       padding: 0;
@@ -30,46 +30,43 @@
   </style>
 </head>
 <body>
-  <h1>🌐 What's My IP?</h1>
-  <p id="ip">Fetching IP and location...</p>
+  <h1>🌐 What's My IP on a Map</h1>
+  <p id="ip">Your IP: (Not available in browser-only mode)</p>
+  <p id="loc-status">Attempting to find your location...</p>
   <div id="map">Loading map...</div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    async function showLocation() {
-      try {
-        const res = await fetch("https://www.cloudflare.com/cdn-cgi/trace");
-        const text = await res.text();
-        const data = Object.fromEntries(text.trim().split('\n').map(line => line.split('=')));
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
 
-        const ip = data.ip;
+          document.getElementById("loc-status").textContent =
+            `Your location: (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
 
-        const locRes = await fetch(`https://ipapi.co/${ip}/json/`);
-        const loc = await locRes.json();
+          const map = L.map("map").setView([lat, lon], 13);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap contributors"
+          }).addTo(map);
 
-        const lat = loc.latitude;
-        const lon = loc.longitude;
-
-        document.getElementById("ip").textContent = `Your IP: ${ip} — ${loc.city}, ${loc.country_name}`;
-
-        const map = L.map("map").setView([lat, lon], 12);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "&copy; OpenStreetMap contributors"
-        }).addTo(map);
-
-        L.marker([lat, lon])
-          .addTo(map)
-          .bindPopup(`You're here: ${loc.city}, ${loc.region}`)
-          .openPopup();
-
-      } catch (err) {
-        document.getElementById("ip").textContent = "Error loading IP or location.";
-        document.getElementById("map").textContent = "Map could not load.";
-        console.error(err);
-      }
+          L.marker([lat, lon])
+            .addTo(map)
+            .bindPopup("You are here!")
+            .openPopup();
+        },
+        () => {
+          document.getElementById("loc-status").textContent =
+            "Location access denied.";
+          document.getElementById("map").textContent =
+            "Map cannot be displayed without location.";
+        }
+      );
+    } else {
+      document.getElementById("loc-status").textContent =
+        "Geolocation not supported in your browser.";
     }
-
-    showLocation();
   </script>
 </body>
 </html>
