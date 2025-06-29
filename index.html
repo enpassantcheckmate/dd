@@ -1,50 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>What's My IP?</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <meta charset="UTF-8" />
+  <title>What's My IP on a Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
   <style>
     body {
-      font-family: -apple-system, aptos, dm sans, inter, sans-serif;
+      font-family: -apple-system, sf pro, dm sans, inter, aptos, sans-serif;
       text-align: center;
-      padding: 1rem;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin: 20px 0 10px;
+    }
+    #ip {
+      font-size: 1.2rem;
     }
     #map {
       height: 400px;
       width: 100%;
       max-width: 600px;
-      margin: 1rem auto;
+      margin: 20px auto;
     }
   </style>
 </head>
 <body>
-  <h1>🌐 Your IP & Location</h1>
-  <p id="ip">Fetching IP info...</p>
-  <div id="map"></div>
+  <h1>🌐 What's My IP?</h1>
+  <p id="ip">Fetching IP and location...</p>
+  <div id="map">Loading map...</div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     async function showLocation() {
       try {
-        const res = await fetch("https://ipinfo.io/json?token=demo"); // Use 'demo' token
-        const data = await res.json();
+        const res = await fetch("https://www.cloudflare.com/cdn-cgi/trace");
+        const text = await res.text();
+        const data = Object.fromEntries(text.trim().split('\n').map(line => line.split('=')));
 
-        const [lat, lon] = data.loc.split(",");
-        document.getElementById("ip").textContent = `Your IP: ${data.ip} — ${data.city}, ${data.country}`;
+        const ip = data.ip;
 
-        const map = L.map('map').setView([lat, lon], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors'
+        const locRes = await fetch(`https://ipapi.co/${ip}/json/`);
+        const loc = await locRes.json();
+
+        const lat = loc.latitude;
+        const lon = loc.longitude;
+
+        document.getElementById("ip").textContent = `Your IP: ${ip} — ${loc.city}, ${loc.country_name}`;
+
+        const map = L.map("map").setView([lat, lon], 12);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors"
         }).addTo(map);
 
-        L.marker([lat, lon]).addTo(map)
-          .bindPopup(`You are here: ${data.city}, ${data.country}`)
+        L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup(`You're here: ${loc.city}, ${loc.region}`)
           .openPopup();
-      } catch (e) {
-        document.getElementById("ip").textContent = "Failed to load IP/location.";
-        document.getElementById("map").textContent = "Map could not be loaded.";
+
+      } catch (err) {
+        document.getElementById("ip").textContent = "Error loading IP or location.";
+        document.getElementById("map").textContent = "Map could not load.";
+        console.error(err);
       }
     }
 
