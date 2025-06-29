@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>What's My IP on a Map?</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 1rem;
+    }
+    #map {
+      height: 400px;
+      width: 100%;
+      max-width: 600px;
+      margin: 1rem auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌐 What's My IP?</h1>
+  <p id="ip">Detecting IP...</p>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    async function showIPInfo() {
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+
+        document.getElementById("ip").textContent = `Your IP: ${data.ip}`;
+
+        const lat = data.latitude;
+        const lon = data.longitude;
+
+        const map = L.map("map").setView([lat, lon], 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors"
+        }).addTo(map);
+
+        L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup(`You are here!<br>${data.city}, ${data.country_name}`)
+          .openPopup();
+      } catch (err) {
+        document.getElementById("ip").textContent =
+          "Could not fetch IP info.";
+      }
+    }
+
+    showIPInfo();
+  </script>
+</body>
+</html>
